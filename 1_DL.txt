@@ -1,0 +1,654 @@
+-----------------
+pip install numpy
+pip install pandas seaborn
+pip install keras
+pip install tensorflow
+pip install scikit-learn
+--------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+
+
+----------------------------------------
+data = pd.read_csv("HousingData.csv")
+-------------
+data
+
+---
+data.isnull().sum()
+----------
+data1 = data.dropna()
+---------------------
+data1.isnull().sum()
+------------
+data1.describe()
+----------------------
+sns.distplot(data1.MEDV)
+-------
+sns.boxplot(data1.MEDV)
+-------------------
+# Checking the correlation of the independent feature with the dependent feature
+correlation = data1.corr()
+correlation.loc['MEDV']
+-----------------------
+correlation = pd.DataFrame(np.random.rand(10, 10), columns=[f'Var{i}' for i in range(10)])
+
+# Create a heatmap
+fig, axes = plt.subplots(figsize=(15, 12))
+sns.heatmap(correlation, square=True, annot=True, ax=axes)
+-------------------------------
+print(data1.columns)
+--------------------
+plt.figure(figsize=(20, 5))
+features = ['ZN', 'CRIM', 'PTRATIO']
+
+for i, col in enumerate(features):
+    plt.subplot(1, len(features), i+1)
+    x = data1[col]
+    y = data1['MEDV']  # Make sure to use quotes around column names
+    plt.scatter(x, y, marker='o')
+    plt.title("Variation in House prices")
+    plt.xlabel(col)
+    plt.ylabel("House prices in $1000")
+
+plt.show()
+----------------------
+# Splitting the dependent feature and independent feature
+X = data1.iloc[:, :-1]
+y = data1.MEDV
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+------------------------
+scaler = StandardScaler()
+-----------------------
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+--------------------------
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
+y_pred_lr = regressor.predict(X_test)
+--------------------
+mse_lr = mean_squared_error(y_test, y_pred_lr)
+mae_lr = mean_absolute_error(y_test, y_pred_lr)
+r2_lr = r2_score(y_test, y_pred_lr)
+------------------------------------
+model = Sequential()
+model.add(Dense(128, activation='relu', input_dim=13))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(16, activation='relu'))
+model.add(Dense(1))
+-------------------------
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
+------------------------
+history = model.fit(X_train, y_train, epochs=100, validation_split=0.05)
+--------------------
+y_pred_nn = model.predict(X_test)
+mse_nn, mae_nn = model.evaluate(X_test, y_test)
+------------------------------------------
+new_data = scaler.transform([[0.1, 10.0, 5.0, 0, 0.4, 6.0, 50, 6.0, 1, 400, 20, 300, 10]])
+prediction = model.predict(new_data)
+------------------------
+print('Linear Regression - Mean squared error on test data:', mse_lr)
+print('Linear Regression - Mean absolute error on test data:', mae_lr)
+print('Linear Regression - R2 score:', r2_lr)
+print('Neural Network - Mean squared error on test data:', mse_nn)
+print('Neural Network - Mean absolute error on test data:', mae_nn)
+print('Predicted house price:', prediction)
+
+--------------------------
+predictions = model.predict(X_test)
+mse = mean_squared_error(y_test, predictions)
+print(f'Mean Squared Error on Test Set: {mse:.2f}')
+----------------------------------
+plt.scatter(y_test, predictions, label='Actual vs Predicted', alpha=0.5)
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--', linewidth=2, label='Ideal Line')
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+plt.title('Actual vs Predicted Values')
+plt.legend()
+plt.show()
+-------------------------
+plt.plot(history.history['loss'], label='Training Loss', color='blue')
+plt.plot(history.history['val_loss'], label='Validation Loss', color='orange')
+plt.axhline(y=mse, color='red', linestyle='--', label=f'Mean Squared Error ({mse:.2f})', linewidth=2)
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.title('Training History')
+plt.legend()
+plt.show()
+-------------------------
+ print(f'Prediction: {predictions[0][0]:.3f}, Actual: {y_test[0]:.3f}')
+
+
+-----------------------------1.2--------------------------------
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+-----------------------------------
+#Lets load the dataset and sample some
+column_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'PRICE']
+df = pd.read_csv('housing.csv', header=None, delimiter=r"\s+", names=column_names)
+
+-----------------------------------
+df.head(5)
+-----------------------------------
+
+# Dimension of the dataset
+df.shape
+-----------------------------------
+
+# Let's summarize the data to see the distribution of data
+df.describe()
+-----------------------------------
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+
+fig, axs = plt.subplots(ncols=7, nrows=2, figsize=(20, 10))
+index = 0
+axs = axs.flatten()
+for k,v in df.items():
+    sns.boxplot(y=k, data=df, ax=axs[index])
+    index += 1
+plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=5.0)
+
+-----------------------------------
+for k, v in df.items():
+    q1 = v.quantile(0.25)
+    q3 = v.quantile(0.75)
+    irq = q3 - q1
+    v_col = v[(v <= q1 - 1.5 * irq) | (v >= q3 + 1.5 * irq)]
+    perc = np.shape(v_col)[0] * 100.0 / np.shape(df)[0]
+    print("Column %s outliers = %.2f%%" % (k, perc))
+
+-----------------------------------
+df = df[~(df['PRICE'] >= 35.0)]
+print(np.shape(df))
+
+-----------------------------------
+#Looking at the data with names and target variable
+df.head()
+
+-----------------------------------
+#Shape of the data
+print(df.shape)
+
+-----------------------------------
+#Checking the null values in the dataset
+df.isnull().sum()
+
+-----------------------------------
+# No null values in the dataset, no missing value treatement needed
+
+-----------------------------------
+#Checking the statistics of the data
+df.describe()
+
+-----------------------------------
+df.info()
+
+-----------------------------------
+#checking the distribution of the target variable
+import seaborn as sns
+sns.histplot(df.PRICE , kde = True)
+
+-----------------------------------
+#Distribution using box plot
+sns.boxplot(df.PRICE)
+
+-----------------------------------
+#checking Correlation of the data 
+correlation = df.corr()
+correlation.loc['PRICE']
+
+-----------------------------------
+# plotting the heatmap
+import matplotlib.pyplot as plt
+fig,axes = plt.subplots(figsize=(15,12))
+sns.heatmap(correlation,square = True,annot = True)
+
+-----------------------------------
+# Checking the scatter plot with the most correlated features
+plt.figure(figsize = (20,5))
+features = ['LSTAT','RM','PTRATIO']
+for i, col in enumerate(features):
+    plt.subplot(1, len(features) , i+1)
+    x = df[col]
+    y = df.PRICE
+    plt.scatter(x, y, marker='o')
+    plt.title("Variation in House prices")
+    plt.xlabel(col)
+    plt.ylabel('"House prices in $1000"')
+
+-----------------------------------
+#X = data[['LSTAT','RM','PTRATIO']]
+X = df.iloc[:,:-1]
+y= df.PRICE
+
+-----------------------------------
+# Splitting the data into train and test for building the model
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2, random_state = 4)
+
+-----------------------------------
+#Linear Regression 
+from sklearn.linear_model import LinearRegression
+regressor = LinearRegression()
+
+-----------------------------------
+#Fitting the model
+regressor.fit(X_train,y_train)
+
+-----------------------------------
+#Prediction on the test dataset
+y_pred = regressor.predict(X_test)
+
+-----------------------------------
+# Predicting RMSE the Test set results
+from sklearn.metrics import mean_squared_error
+rmse = (np.sqrt(mean_squared_error(y_test, y_pred)))
+print(rmse)
+
+-----------------------------------
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(r2)
+
+-----------------------------------
+#Scaling the dataset
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+-----------------------------------
+#Creating the neural network model
+import keras
+from keras.layers import Dense, Activation,Dropout
+from keras.models import Sequential
+
+model = Sequential()
+
+model.add(Dense(128,activation  = 'relu',input_dim =13))
+model.add(Dense(64,activation  = 'relu'))
+model.add(Dense(32,activation  = 'relu'))
+model.add(Dense(16,activation  = 'relu'))
+model.add(Dense(1))
+model.compile(optimizer = 'adam',loss = 'mean_squared_error')
+
+-----------------------------------
+model.fit(X_train, y_train, epochs = 100)
+
+-----------------------------------
+y_pred = model.predict(X_test)
+
+-----------------------------------
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print(r2)
+
+-----------------------------------
+# Predicting RMSE the Test set results
+from sklearn.metrics import mean_squared_error
+rmse = (np.sqrt(mean_squared_error(y_test, y_pred)))
+print(rmse)
+
+
+--------------------------------------------2-----------------------
+
+
+import tensorflow as tf
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow import keras
+import numpy as np
+from tensorflow.keras import layers
+
+--------
+# Load the IMDB dataset
+max_features = 200000
+maxlen = 256
+(train_data, train_labels), (test_data, test_labels) = imdb.load_data(num_words=max_features)
+--------------------
+# Load the IMDB word index
+word_index = imdb.get_word_index()
+-----------------
+# Reverse the word index to map indices to words
+reverse_word_index = dict([(value, key) for (key, value) in word_index.items()])
+---------------------
+# Pad sequences to a fixed length
+max_length = 256
+train_data = keras.preprocessing.sequence.pad_sequences(train_data, value=0, padding='post', maxlen=max_length)
+test_data = keras.preprocessing.sequence.pad_sequences(test_data, value=0, padding='post', maxlen=max_length)
+-----------------------
+# Convert train_data and test_data to numpy arrays
+train_data = np.array(train_data)
+test_data = np.array(test_data)
+-----------------------------
+# Build and compile the model
+model = keras.Sequential([
+    layers.Embedding(input_dim=200000, output_dim=16),
+    layers.GlobalAveragePooling1D(),
+    layers.Dense(16, activation='relu'),
+    layers.Dense(1, activation='sigmoid')
+])
+--------------------------------
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+---------------
+# Train the model
+history = model.fit(train_data, train_labels, epochs=10, batch_size=512, validation_split=0.2)
+----------------
+# Evaluate the model
+test_loss, test_acc = model.evaluate(test_data, test_labels)
+print("\nTest Accuracy:", test_acc)
+------------------------
+# Predict sentiment for test reviews
+predictions = model.predict(test_data)
+-----------------------
+# Filter out positive and negative reviews
+positive_reviews = []
+negative_reviews = []
+-----------------------
+threshold = 0.45
+---------------------------
+for review, prediction in zip(test_data, predictions):
+    review_text = ' '.join([reverse_word_index.get(idx - 3, '?') for idx in review])
+    if prediction >= threshold:
+        positive_reviews.append((review_text, prediction))
+    else:
+        negative_reviews.append((review_text, prediction))
+----------------------------------------------------------
+# Print a few positive reviews
+print("Positive Reviews:")
+for review, prediction in positive_reviews[:1]:
+    print("Review:", review)
+    print("Prediction:", prediction)
+    print()
+---------------------------------------
+# Print a few negative reviews
+print("Negative Reviews:")
+for review, prediction in negative_reviews[:1]:
+    print("Review:", review)
+    print("Prediction:", prediction)
+    print()
+-------------------------
+
+----------------------------------3-------CNN-------------
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import matplotlib.pyplot as plt
+-------------------------------------
+(train_images, train_labels), (test_images, test_labels) = keras.datasets.fashion_mnist.load_data()
+
+------
+# Step 3: Preprocess the Data
+train_images = train_images / 255.0
+test_images = test_images / 255.0
+---------------
+# Reshape images to add a channel dimension
+train_images = train_images.reshape(train_images.shape[0], 28, 28, 1)
+test_images = test_images.reshape(test_images.shape[0], 28, 28, 1)
+-------------------
+# Step 4: Build the Model
+model = keras.Sequential([
+    keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    keras.layers.MaxPooling2D((2, 2)),
+    keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    keras.layers.MaxPooling2D((2, 2)),
+    keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    keras.layers.Flatten(),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(10, activation='softmax')
+])
+-----------------------
+# Step 5: Compile the Model
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+--------------------------------
+history = model.fit(train_images, train_labels, epochs=10, validation_data=(test_images, test_labels))
+------
+test_loss, test_acc = model.evaluate(test_images, test_labels)
+print('Test accuracy:', test_acc)
+---------------------
+# Plot training history
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim([0, 1])
+plt.legend(loc='lower right')
+plt.show()
+------------------------
+# Make predictions on test images
+predictions = model.predict(test_images)
+------------------------------
+# Get predicted labels
+predicted_labels = np.argmax(predictions, axis=1)
+-----------------------------
+# Display some images along with their predicted labels
+plt.figure(figsize=(15, 15))
+for i in range(25):
+    plt.subplot(5, 5, i + 1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(test_images[i].reshape(28, 28), cmap=plt.cm.binary)
+    plt.xlabel(f"True:{test_labels[i]}\nPredicted:{predicted_labels[i]}")
+plt.show()
+---------------------
+
+--------------4--RNN-------------
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+-------------------
+df = pd.read_csv("Google_Stock_Price_Train.csv")
+-------------
+# Extract Close prices
+data = df['Close'].values.reshape(-1, 1)
+-------------------
+# Step 3: Preprocess the Data
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(data)
+-------------
+# Create sequences for input to RNN
+def create_sequences(data, seq_length):
+    X, y = [], []
+    for i in range(len(data) - seq_length):
+        X.append(data[i:i+seq_length])
+        y.append(data[i+seq_length])
+    return np.array(X), np.array(y)
+---------------
+seq_length = 20  # Number of time steps to look back
+X, y = create_sequences(scaled_data, seq_length)
+-------------------
+# Split data into training and testing sets
+split = int(0.8 * len(X))
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+-----------------------
+# Step 4: Build the RNN Model
+model = Sequential([
+    LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)),
+    LSTM(units=50, return_sequences=False),
+    Dense(units=1)
+])
+----------------
+# Step 5: Train the Model
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train, y_train, epochs=10, batch_size=32)
+------------------
+# Step 6: Evaluate the Model
+test_loss = model.evaluate(X_test, y_test)
+print('Test Loss:', test_loss)
+
+---------------------
+# Step 7: Make Predictions
+predictions = model.predict(X_test)
+predictions = scaler.inverse_transform(predictions)
+
+-----------------
+plt.figure(figsize=(12, 6))
+plt.plot(df.index[split+seq_length:], df['Close'][split+seq_length:], label='Actual Prices')
+plt.plot(df.index[split+seq_length:], predictions, label='Predicted Prices')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.title('Google Stock Prices - Actual vs Predicted')
+plt.legend()
+plt.show()
+
+
+------------------------------4.2---RNN----------
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import matplotlib.pyplot as plt
+
+-----------------------------------
+data=pd.read_csv("Google_Stock_Price_Train.csv")
+data
+
+-----------------------------------
+train = data.iloc[:1260,:]
+test = data.iloc[1260:,:]
+
+-----------------------------------
+train
+
+-----------------------------------
+trainset = train.iloc[:,1:2].values
+
+-----------------------------------
+trainset
+
+-----------------------------------
+from sklearn.preprocessing import MinMaxScaler
+sc = MinMaxScaler(feature_range = (0,1))
+training_scaled = sc.fit_transform(trainset)
+
+-----------------------------------
+training_scaled
+
+-----------------------------------
+x_train = []
+y_train = []
+
+-----------------------------------
+for i in range(60,1259):
+    x_train.append(training_scaled[i-60:i, 0])
+    y_train.append(training_scaled[i,0])
+x_train,y_train = np.array(x_train),np.array(y_train)
+
+-----------------------------------
+x_train.shape
+
+-----------------------------------
+x_train = np.reshape(x_train, (x_train.shape[0],x_train.shape[1],1))
+
+-----------------------------------
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+
+-----------------------------------
+regressor = Sequential()
+regressor.add(LSTM(units = 50,return_sequences = True,input_shape = (x_train.shape[1],1)))
+
+-----------------------------------
+regressor.add(Dropout(0.2))
+
+-----------------------------------
+regressor.add(LSTM(units = 50,return_sequences = True))
+regressor.add(Dropout(0.2))
+
+-----------------------------------
+regressor.add(LSTM(units = 50,return_sequences = True))
+regressor.add(Dropout(0.2))
+
+-----------------------------------
+regressor.add(LSTM(units = 50))
+regressor.add(Dropout(0.2))
+
+-----------------------------------
+regressor.add(Dense(units = 1))
+
+-----------------------------------
+regressor.compile(optimizer = 'adam',loss = 'mean_squared_error')
+
+-----------------------------------
+regressor.fit(x_train,y_train,epochs = 100, batch_size = 32)
+
+-----------------------------------
+test
+
+-----------------------------------
+real_stock_price = test.iloc[:,1:2].values
+
+-----------------------------------
+dataset_total = pd.concat((train['Open'],test['Open']),axis = 0)
+dataset_total
+
+-----------------------------------
+inputs = dataset_total[len(dataset_total) - len(test)-60:].values
+inputs
+
+-----------------------------------
+inputs = inputs.reshape(-1,1)
+
+-----------------------------------
+inputs
+
+-----------------------------------
+inputs = sc.transform(inputs)
+inputs.shape
+
+-----------------------------------
+x_test = []
+for i in range(60,185):
+    x_test.append(inputs[i-60:i,0])
+
+-----------------------------------
+x_test = np.array(x_test)
+x_test.shape
+
+-----------------------------------
+x_test = np.reshape(x_test, (x_test.shape[0],x_test.shape[1],1))
+x_test.shape
+
+-----------------------------------
+predicted_price = regressor.predict(x_test)
+
+-----------------------------------
+predicted_price = sc.inverse_transform(predicted_price)
+predicted_price
+
+-----------------------------------
+plt.plot(real_stock_price,color = 'red', label = 'Real Price')
+plt.plot(predicted_price, color = 'blue', label = 'Predicted Price')
+plt.title('Google Stock Price Prediction')
+plt.xlabel('Time')
+plt.ylabel('Google Stock Price')
+plt.legend()
+plt.show()
+
+
+
+

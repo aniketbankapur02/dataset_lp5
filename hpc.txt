@@ -1,0 +1,1218 @@
+g++ -fopenmp main.cpp -o main
+./main
+
+
+For HPC Assignments 1-3
+Run the program as (gcc or g++):
+
+g++ filename.cpp -o filename.exe -fopenmp
+./filename.exe
+--------------1--------------------
+
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+class Graph {
+
+   int V; // Number of vertices
+
+   vector<int> *adj; // Adjacency list
+
+public:
+
+   Graph(int V);
+
+   void addEdge(int v, int w);
+
+   void parallelBFS(int s);
+
+   void parallelDFS(int s);
+
+};
+
+Graph::Graph(int V) {
+
+   this->V = V;
+
+   adj = new vector<int>[V];
+
+}
+
+void Graph::addEdge(int v, int w) {
+
+   adj[v].push_back(w);
+
+   adj[w].push_back(v);
+
+}
+
+void Graph::parallelBFS(int s) {
+
+   bool *visited = new bool[V];
+
+   for (int i = 0; i < V; i++) {
+
+       visited[i] = false;
+
+   }
+
+   queue<int> q;
+
+   visited[s] = true;
+
+   q.push(s);
+
+   while (!q.empty()) {
+
+       s = q.front();
+
+       cout << s << " ";
+
+       q.pop();
+
+       #pragma omp parallel for
+
+       for (auto i = adj[s].begin(); i != adj[s].end(); ++i) {
+
+           if (!visited[*i]) {
+
+               visited[*i] = true;
+
+               q.push(*i);
+
+           }
+
+       }
+
+   }
+
+}
+
+void Graph::parallelDFS(int s) {
+
+   bool *visited = new bool[V];
+
+   for (int i = 0; i < V; i++) {
+
+       visited[i] = false;
+
+   }
+
+   stack<int> st;
+
+   st.push(s);
+
+   while (!st.empty()) {
+
+       s = st.top();
+
+       st.pop();
+
+       if (!visited[s]) {
+
+           cout << s << " ";
+
+           visited[s] = true;
+
+       }
+
+       #pragma omp parallel for
+
+       for (auto i = adj[s].begin(); i != adj[s].end(); ++i) {
+
+           if (!visited[*i]) {
+
+               st.push(*i);
+           }
+       }
+   }
+}
+
+int main() {
+   Graph g(4);
+   g.addEdge(0, 1);
+   g.addEdge(0, 2);
+   g.addEdge(1, 2);
+   g.addEdge(2, 0);
+   g.addEdge(2, 3);
+   g.addEdge(3, 3);
+
+   cout << "Parallel Breadth First Traversal (starting from vertex 2):\n";
+   g.parallelBFS(2);
+
+   cout << "\nParallel Depth First Traversal (starting from vertex 2):\n";
+   g.parallelDFS(2);
+
+   return 0;
+
+}
+------------------1.2----------
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+// Graph class representing an undirected graph using adjacency list representation
+class Graph {
+private:
+    int numVertices;          // Number of vertices
+    vector<vector<int>> adj;  // Adjacency list
+
+public:
+    Graph(int vertices) : numVertices(vertices), adj(vertices) {}
+
+    // Add an edge between two vertices
+    void addEdge(int src, int dest) {
+        adj[src].push_back(dest);
+        adj[dest].push_back(src);
+    }
+
+    // View the graph
+    void viewGraph() {
+        cout << "Graph:\n";
+        for (int i = 0; i < numVertices; i++) {
+            cout << "Vertex " << i << " -> ";
+            for (int neighbor : adj[i]) {
+                cout << neighbor << " ";
+            }
+            cout << endl;
+        }
+    }
+
+    // Perform Breadth First Search (BFS) in parallel
+    void bfs(int startVertex) {
+        vector<bool> visited(numVertices, false);
+        queue<int> q;
+
+        // Mark the start vertex as visited and enqueue it
+        visited[startVertex] = true;
+        q.push(startVertex);
+
+        while (!q.empty()) {
+            int currentVertex = q.front();
+            q.pop();
+            cout << currentVertex << " ";
+
+            // Enqueue all adjacent unvisited vertices
+            #pragma omp parallel for
+            for (int neighbor : adj[currentVertex]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    q.push(neighbor);
+                }
+            }
+        }
+    }
+
+    // Perform Depth First Search (DFS) in parallel
+    void dfs(int startVertex) {
+        vector<bool> visited(numVertices, false);
+        stack<int> s;
+
+        // Mark the start vertex as visited and push it onto the stack
+        visited[startVertex] = true;
+        s.push(startVertex);
+
+        while (!s.empty()) {
+            int currentVertex = s.top();
+            s.pop();
+            cout << currentVertex << " ";
+
+            // Push all adjacent unvisited vertices onto the stack
+            #pragma omp parallel for
+            for (int neighbor : adj[currentVertex]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    s.push(neighbor);
+                }
+            }
+        }
+    }
+};
+
+int main() {
+    int numVertices;
+    cout << "Enter the number of vertices in the graph: ";
+    cin >> numVertices;
+
+    // Create a graph with the specified number of vertices
+    Graph graph(numVertices);
+
+    int numEdges;
+    cout << "Enter the number of edges in the graph: ";
+    cin >> numEdges;
+
+    cout << "Enter the edges (source destination):\n";
+    for (int i = 0; i < numEdges; i++) {
+        int src, dest;
+        cin >> src >> dest;
+        graph.addEdge(src, dest);
+    }
+
+    // View the graph
+    graph.viewGraph();
+
+    int startVertex;
+    cout << "Enter the starting vertex for BFS and DFS: ";
+    cin >> startVertex;
+
+    cout << "Breadth First Search (BFS): ";
+    graph.bfs(startVertex);
+    cout << endl;
+
+    cout << "Depth First Search (DFS): ";
+    graph.dfs(startVertex);
+    cout << endl;
+
+    return 0;
+}
+
+------------------------2-----------------------
+#include <iostream>
+#include <vector>
+#include <omp.h>
+#include <chrono>
+#include <algorithm>
+using namespace std;
+using namespace std::chrono;
+// Sequential Bubble Sort
+void sequentialBubbleSort(vector<int> &arr)
+{
+    int n = arr.size();
+    for (int i = 0; i < n - 1; ++i)
+    {
+        for (int j = 0; j < n - i - 1; ++j)
+        {
+            if (arr[j] > arr[j + 1])
+            {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+// Parallel Bubble Sort
+void parallelBubbleSort(vector<int> &arr)
+{
+    int n = arr.size();
+    bool swapped;
+#pragma omp parallel
+    {
+        do
+        {
+            swapped = false;
+#pragma omp for
+            for (int i = 0; i < n - 1; ++i)
+            {
+                if (arr[i] > arr[i + 1])
+                {
+                    swap(arr[i], arr[i + 1]);
+                    swapped = true;
+                }
+            }
+        } while (swapped);
+    }
+}
+// Sequential Merge Sort Helper Function
+void merge(vector<int> &arr, int left, int mid, int right)
+{
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; ++i)
+    {
+        L[i] = arr[left + i];
+    }
+    for (int j = 0; j < n2; ++j)
+    {
+        R[j] = arr[mid + 1 + j];
+    }
+    int i = 0, j = 0, k = left;
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            arr[k++] = L[i++];
+        }
+        else
+        {
+            arr[k++] = R[j++];
+        }
+    }
+    while (i < n1)
+    {
+        arr[k++] = L[i++];
+    }
+    while (j < n2)
+    {
+        arr[k++] = R[j++];
+    }
+}
+// Sequential Merge Sort
+void sequentialMergeSort(vector<int> &arr, int left, int right)
+{
+    if (left < right)
+    {
+        int mid = left + (right - left) / 2;
+        sequentialMergeSort(arr, left, mid);
+        sequentialMergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+// Parallel Merge Sort
+void parallelMergeSort(vector<int> &arr, int left, int right)
+{
+    if (left < right)
+    {
+        int mid = left + (right - left) / 2;
+#pragma omp parallel sections
+        {
+#pragma omp section
+            parallelMergeSort(arr, left, mid);
+#pragma omp section
+            parallelMergeSort(arr, mid + 1, right);
+        }
+        merge(arr, left, mid, right);
+    }
+}
+int main()
+{
+    int n = 10000; // Change the array size as needed
+    vector<int> arr(n);
+    // Initialize array with random values
+    srand(time(0));
+    for (int i = 0; i < n; ++i)
+    {
+        arr[i] = rand() % 10000;
+    }
+    // Measure time for Sequential Bubble Sort
+    auto start = high_resolution_clock::now();
+    sequentialBubbleSort(arr);
+    auto stop = high_resolution_clock::now();
+    auto durationSequentialBubbleSort = duration_cast<milliseconds>(stop - start);
+    // Measure time for Parallel Bubble Sort
+    start = high_resolution_clock::now();
+    parallelBubbleSort(arr);
+    stop = high_resolution_clock::now();
+    auto durationParallelBubbleSort = duration_cast<milliseconds>(stop - start);
+    // Reset array for merge sort
+    for (int i = 0; i < n; ++i)
+    {
+        arr[i] = rand() % 10000;
+    }
+    // Measure time for Sequential Merge Sort
+    start = high_resolution_clock::now();
+    sequentialMergeSort(arr, 0, n - 1);
+    stop = high_resolution_clock::now();
+    auto durationSequentialMergeSort = duration_cast<milliseconds>(stop - start);
+    // Measure time for Parallel Merge Sort
+    start = high_resolution_clock::now();
+    parallelMergeSort(arr, 0, n - 1);
+    stop = high_resolution_clock::now();
+    auto durationParallelMergeSort = duration_cast<milliseconds>(stop - start);
+    // Display execution times
+    cout << "Sequential Bubble Sort Time: " << durationSequentialBubbleSort.count() << " milliseconds" << endl;
+    cout << "Parallel Bubble Sort Time: " << durationParallelBubbleSort.count() << " milliseconds" << endl;
+    cout << "Sequential Merge Sort Time: " << durationSequentialMergeSort.count() << " milliseconds" << endl;
+    cout << "Parallel Merge Sort Time: " << durationParallelMergeSort.count() << " milliseconds" << endl;
+    return 0;
+}
+----------------------2.2----------------
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+#include <omp.h>
+
+using namespace std;
+
+void bubbleSort(int arr[], int n)
+{
+    for (int i = 0; i < n - 1; ++i)
+    {
+        for (int j = 0; j < n - i - 1; ++j)
+        {
+            if (arr[j] > arr[j + 1])
+            {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+}
+
+void merge(int arr[], int l, int m, int r)
+{
+    int i, j, k;
+    int n1 = m - l + 1;
+    int n2 = r - m;
+
+    int *L = new int[n1];
+    int *R = new int[n2];
+
+    for (i = 0; i < n1; ++i)
+    {
+        L[i] = arr[l + i];
+    }
+    for (j = 0; j < n2; ++j)
+    {
+        R[j] = arr[m + 1 + j];
+    }
+
+    i = 0;
+    j = 0;
+    k = l;
+
+    while (i < n1 && j < n2)
+    {
+        if (L[i] <= R[j])
+        {
+            arr[k] = L[i];
+            ++i;
+        }
+        else
+        {
+            arr[k] = R[j];
+            ++j;
+        }
+        ++k;
+    }
+
+    while (i < n1)
+    {
+        arr[k] = L[i];
+        ++i;
+        ++k;
+    }
+
+    while (j < n2)
+    {
+        arr[k] = R[j];
+        ++j;
+        ++k;
+    }
+
+    delete[] L;
+    delete[] R;
+}
+
+void mergeSort(int arr[], int l, int r)
+{
+    if (l < r)
+    {
+        int m = l + (r - l) / 2;
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                mergeSort(arr, l, m);
+            }
+            #pragma omp section
+            {
+                mergeSort(arr, m + 1, r);
+            }
+        }
+
+        merge(arr, l, m, r);
+    }
+}
+
+void printArray(int arr[], int size)
+{
+    for (int i = 0; i < size; ++i)
+    {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+}
+
+int main()
+{
+    int n;
+    cout << "Enter the size of the array: ";
+    cin >> n;
+
+    int *arr = new int[n];
+    srand(time(0));
+    for (int i = 0; i < n; ++i)
+    {
+        arr[i] = rand() % 100;
+    }
+
+    // cout << "Original array: ";
+    // printArray(arr, n);
+
+    // Sequential Bubble Sort
+    clock_t start = clock();
+    bubbleSort(arr, n);
+    clock_t end = clock();
+
+    // cout << "Sequential Bubble Sorted array: ";
+    // printArray(arr, n);
+
+    double sequentialBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Bubble Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        bubbleSort(arr, n);
+    }
+    end = clock();
+
+    // cout << "Parallel Bubble Sorted array: ";
+    // printArray(arr, n);
+
+    double parallelBubbleTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Merge Sort
+    start = clock();
+    mergeSort(arr, 0, n - 1);
+    end = clock();
+
+    // cout << "Sequential Merge Sorted array: ";
+    // printArray(arr, n);
+
+    double sequentialMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Parallel Merge Sort
+    start = clock();
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            mergeSort(arr, 0, n - 1);
+        }
+    }
+    end = clock();
+
+    // cout << "Parallel Merge Sorted array: ";
+    // printArray(arr, n);
+
+    double parallelMergeTime = double(end - start) / CLOCKS_PER_SEC;
+
+    // Performance measurement
+    cout << "Sequential Bubble Sort Time: " << sequentialBubbleTime << " seconds" << endl;
+    cout << "Parallel Bubble Sort Time: " << parallelBubbleTime << " seconds" << endl;
+    cout << "Sequential Merge Sort Time: " << sequentialMergeTime << " seconds" << endl;
+    cout << "Parallel Merge Sort Time: " << parallelMergeTime << " seconds" << endl;
+
+    delete[] arr;
+
+    return 0;
+}
+g++ -fopenmp main.cpp -o main
+
+
+---------------------------
+
+--mini-
+// C++(STL) program for Huffman Coding with STL 
+#include <bits/stdc++.h> 
+using namespace std; 
+
+// A Huffman tree node 
+struct MinHeapNode { 
+
+	// One of the input characters 
+	char data; 
+
+	// Frequency of the character 
+	unsigned freq; 
+
+	// Left and right child 
+	MinHeapNode *left, *right; 
+
+	MinHeapNode(char data, unsigned freq) 
+
+	{ 
+
+		left = right = NULL; 
+		this->data = data; 
+		this->freq = freq; 
+	} 
+}; 
+
+// For comparison of 
+// two heap nodes (needed in min heap) 
+struct compare { 
+
+	bool operator()(MinHeapNode* l, MinHeapNode* r) 
+
+	{ 
+		return (l->freq > r->freq); 
+	} 
+}; 
+
+// Prints huffman codes from 
+// the root of Huffman Tree. 
+void printCodes(struct MinHeapNode* root, string str) 
+{ 
+
+	if (!root) 
+		return; 
+
+	if (root->data != '$') 
+		cout << root->data << ": " << str << "\n"; 
+
+	printCodes(root->left, str + "0"); 
+	printCodes(root->right, str + "1"); 
+} 
+
+// The main function that builds a Huffman Tree and 
+// print codes by traversing the built Huffman Tree 
+void HuffmanCodes(char data[], int freq[], int size) 
+{ 
+	struct MinHeapNode *left, *right, *top; 
+
+	// Create a min heap & inserts all characters of data[] 
+	priority_queue<MinHeapNode*, vector<MinHeapNode*>, 
+				compare> 
+		minHeap; 
+
+	for (int i = 0; i < size; ++i) 
+		minHeap.push(new MinHeapNode(data[i], freq[i])); 
+
+	// Iterate while size of heap doesn't become 1 
+	while (minHeap.size() != 1) { 
+
+		// Extract the two minimum 
+		// freq items from min heap 
+		left = minHeap.top(); 
+		minHeap.pop(); 
+
+		right = minHeap.top(); 
+		minHeap.pop(); 
+
+		// Create a new internal node with 
+		// frequency equal to the sum of the 
+		// two nodes frequencies. Make the 
+		// two extracted node as left and right children 
+		// of this new node. Add this node 
+		// to the min heap '$' is a special value 
+		// for internal nodes, not used 
+		top = new MinHeapNode('$', 
+							left->freq + right->freq); 
+
+		top->left = left; 
+		top->right = right; 
+
+		minHeap.push(top); 
+	} 
+
+	// Print Huffman codes using 
+	// the Huffman tree built above 
+	printCodes(minHeap.top(), ""); 
+} 
+
+// Driver Code 
+int main() 
+{ 
+
+	char arr[] = { 'a', 'b', 'c', 'd', 'e', 'f' }; 
+	int freq[] = { 5, 9, 12, 13, 16, 45 }; 
+
+	int size = sizeof(arr) / sizeof(arr[0]); 
+
+	HuffmanCodes(arr, freq, size); 
+
+	return 0; 
+} 
+
+---
+g++ -fopenmp ass.cpp  -o ac 
+./ac
+--
+
+--------------------hpc 3 code1----------------
+#include <iostream>
+//#include <vector>
+#include <omp.h>
+#include <climits>
+using namespace std;
+void min_reduction(int arr[], int n) {
+  int min_value = INT_MAX;
+  #pragma omp parallel for reduction(min: min_value)
+  for (int i = 0; i < n; i++) {
+	if (arr[i] < min_value) {
+  	min_value = arr[i];
+	}
+  }
+  cout << "Minimum value: " << min_value << endl;
+}
+
+void max_reduction(int arr[], int n) {
+  int max_value = INT_MIN;
+  #pragma omp parallel for reduction(max: max_value)
+  for (int i = 0; i < n; i++) {
+	if (arr[i] > max_value) {
+  	max_value = arr[i];
+	}
+  }
+  cout << "Maximum value: " << max_value << endl;
+}
+
+void sum_reduction(int arr[], int n) {
+  int sum = 0;
+   #pragma omp parallel for reduction(+: sum)
+   for (int i = 0; i < n; i++) {
+	sum += arr[i];
+  }
+  cout << "Sum: " << sum << endl;
+}
+
+void average_reduction(int arr[], int n) {
+  int sum = 0;
+  #pragma omp parallel for reduction(+: sum)
+  for (int i = 0; i < n; i++) {
+	sum += arr[i];
+  }
+  cout << "Average: " << (double)sum / (n) << endl;
+}
+
+int main() {
+    int *arr,n;
+    cout<<"\n enter total no of elements=>";
+    cin>>n;
+    arr=new int[n];
+    cout<<"\n enter elements=>";
+    for(int i=0;i<n;i++)
+    {
+   	 cin>>arr[i];
+    }
+
+//   int arr[] = {5, 2, 9, 1, 7, 6, 8, 3, 4};
+//   int n = size(arr);
+
+  min_reduction(arr, n);
+  max_reduction(arr, n);
+  sum_reduction(arr, n);
+  average_reduction(arr, n);
+}
+
+-------------------3 code 2--------------
+#include <iostream>
+#include <vector>
+#include <omp.h>
+using namespace std;
+
+void min_reduction(const vector<int> &arr)
+{
+    int min_value = arr[0];
+#pragma omp parallel for reduction(min : min_value)
+    for (int i = 1; i < arr.size(); i++)
+    {
+        if (arr[i] < min_value)
+        {
+            min_value = arr[i];
+        }
+    }
+    cout << "Minimum: " << min_value << endl;
+}
+
+void max_reduction(const vector<int> &arr)
+{
+    int max_value = arr[0];
+#pragma omp parallel for reduction(max : max_value)
+    for (int i = 1; i < arr.size(); i++)
+    {
+        if (arr[i] > max_value)
+        {
+            max_value = arr[i];
+        }
+    }
+    cout << "Maximum: " << max_value << endl;
+}
+
+void sum_reduction(const vector<int> &arr)
+{
+    int sum = 0;
+#pragma omp parallel for reduction(+ : sum)
+    for (int i = 0; i < arr.size(); i++)
+    {
+        sum += arr[i];
+    }
+    cout << "Sum: " << sum << endl;
+}
+
+void average_reduction(const vector<int> &arr)
+{
+    int sum = 0;
+#pragma omp parallel for reduction(+ : sum)
+    for (int i = 0; i < arr.size(); i++)
+    {
+        sum += arr[i];
+    }
+    cout << "Average: " << (double)sum / arr.size() << endl;
+}
+int main()
+{
+    vector<int> arr = { 2,  1, 3};
+    min_reduction(arr);
+    max_reduction(arr);
+    sum_reduction(arr);
+    average_reduction(arr);
+    return 0;
+}
+-------------------4
+!nvcc --version
+
+----------------------
+!pip install git+https://github.com/afnan47/cuda.git
+
+---------------
+!pip install git+https://github.com/andreinechaev/nvcc4jupyter.git
+--------------
+%load_ext nvcc_plugin
+
+---------------
+# VECTOR ADDITION
+%%cu
+
+#include <stdio.h>
+
+// CUDA kernel for vector addition
+__global__ void vectorAdd(int* a, int* b, int* c, int size) 
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < size) {
+        c[tid] = a[tid] + b[tid];
+    }
+}
+
+int main() 
+{
+    int size = 100;  // Size of the vectors
+    int* a, * b, * c;    // Host vectors
+    int* dev_a, * dev_b, * dev_c;  // Device vectors
+
+    // Allocate memory for host vectors
+    a = (int*)malloc(size * sizeof(int));
+    b = (int*)malloc(size * sizeof(int));
+    c = (int*)malloc(size * sizeof(int));
+
+    // Initialize host vectors
+    for (int i = 0; i < size; i++) {
+        a[i] = i;
+        b[i] = 2 * i;
+    }
+
+    // Allocate memory on the device for device vectors
+    cudaMalloc((void**)&dev_a, size * sizeof(int));
+    cudaMalloc((void**)&dev_b, size * sizeof(int));
+    cudaMalloc((void**)&dev_c, size * sizeof(int));
+
+    // Copy host vectors to device
+    cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Launch kernel for vector addition
+    int blockSize = 256;
+    int gridSize = (size + blockSize - 1) / blockSize;
+    vectorAdd<<<gridSize, blockSize>>>(dev_a, dev_b, dev_c, size);
+
+    // Copy result from device to host
+    cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Print result
+    for (int i = 0; i < size; i++) {
+        printf("%d + %d = %d\n", a[i], b[i], c[i]);
+    }
+
+    // Free device memory
+    cudaFree(dev_a);
+    cudaFree(dev_b);
+    cudaFree(dev_c);
+
+    // Free host memory
+    free(a);
+    free(b);
+    free(c);
+
+    return 0;
+}
+
+---------
+# MATRIX MULTIPLICATION
+
+%%cu
+
+#include <stdio.h>
+
+// CUDA kernel for matrix multiplication
+__global__ void matrixMul(int* a, int* b, int* c, int rowsA, int colsA, int colsB) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int sum = 0;
+    if (row < rowsA && col < colsB) {
+        for (int i = 0; i < colsA; i++) {
+            sum += a[row * colsA + i] * b[i * colsB + col];
+        }
+        c[row * colsB + col] = sum;
+    }
+}
+
+int main() {
+    int rowsA = 10;  // Rows of matrix A
+    int colsA = 10;  // Columns of matrix A
+    int rowsB = colsA; // Rows of matrix B
+    int colsB = 10;  // Columns of matrix B
+
+    int* a, * b, * c;  // Host matrices
+    int* dev_a, * dev_b, * dev_c;  // Device matrices
+
+    // Allocate memory for host matrices
+    a = (int*)malloc(rowsA * colsA * sizeof(int));
+    b = (int*)malloc(rowsB * colsB * sizeof(int));
+    c = (int*)malloc(rowsA * colsB * sizeof(int));
+
+    // Initialize host matrices
+    for (int i = 0; i < rowsA * colsA; i++) {
+        a[i] = i;
+    }
+    for (int i = 0; i < rowsB * colsB; i++) {
+        b[i] = 2 * i;
+    }
+
+    // Allocate memory on the device for device matrices
+    cudaMalloc((void**)&dev_a, rowsA * colsA * sizeof(int));
+    cudaMalloc((void**)&dev_b, rowsB * colsB * sizeof(int));
+    cudaMalloc((void**)&dev_c, rowsA * colsB * sizeof(int));
+
+    // Copy host matrices to device
+    cudaMemcpy(dev_a, a, rowsA * colsA * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_b, b, rowsB * colsB * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Define grid and block dimensions
+    dim3 blockSize(16, 16);
+    dim3 gridSize((colsB + blockSize.x - 1) / blockSize.x, (rowsA + blockSize.y - 1) / blockSize.y);
+
+    // Launch kernel for matrix multiplication
+    matrixMul<<<gridSize, blockSize>>>(dev_a, dev_b, dev_c, rowsA, colsA, colsB);
+
+    // Copy result from device to host
+    cudaMemcpy(c, dev_c, rowsA * colsB * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Print result
+    printf("Result:\n");
+    for (int i = 0; i < rowsA; i++) {
+        for (int j = 0; j < colsB; j++) {
+            printf("%d ", c[i * colsB + j]);
+        }
+        printf("\n");
+    }
+
+    // Free device memory
+    cudaFree(dev_a);
+    cudaFree(dev_b);
+    cudaFree(dev_c);
+
+    // Free host memory
+    free(a);
+    free(b);
+    free(c);
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------3------------
+#include <iostream>
+#include <vector>
+#include <omp.h>
+#include <time.h>
+using namespace std;
+int main() {
+const int size = 1000;
+vector<int> data(size);
+srand(time(0));
+for (int i = 0; i < size; ++i) {
+data[i] = rand() % 100;
+}
+int min_value = data[0];
+#pragma omp parallel for reduction(min:min_value)
+for (int i = 0; i < size; ++i) {
+if (data[i] < min_value) {
+min_value = data[i];
+}
+}
+int max_value = data[0];
+#pragma omp parallel for reduction(max:max_value)
+for (int i = 0; i < size; ++i) {
+if (data[i] > max_value) {
+max_value = data[i];
+}
+}
+int sum = 0;
+#pragma omp parallel for reduction(+:sum)
+for (int i = 0; i < size; ++i) {
+sum += data[i];
+}
+float average = 0.0; 
+#pragma omp parallel for reduction(+:average)
+for (int i = 0; i < size; ++i) {
+average += static_cast<float>(data[i]) / size;
+}
+cout << "Minimum value: " << min_value << endl;
+cout << "Maximum value: " << max_value << endl;
+cout << "Sum of values: " << sum << endl;
+cout << "Average of values: " << average << endl;
+return 0;
+}
+
+------4-----
+
+!pip install scikit-cuda
+pip uninstall numpy
+pip install numpy==1.21
+pip install numpy==1.21
+
+
+import pycuda.gpuarray as gpuarray
+import numpy as np
+import skcuda.linalg as linalg
+
+# --- Initializations
+import pycuda.autoinit
+linalg.init()
+
+A = np.array(([1, 2, 3], [4, 5, 6])).astype(np.float64)
+B = np.array(([7, 8, 1, 5], [9, 10, 0, 9], [11, 12, 5, 5])).astype(np.float64)
+
+A_gpu = gpuarray.to_gpu(A)
+B_gpu = gpuarray.to_gpu(B)
+
+C_gpu = linalg.dot(A_gpu, B_gpu)
+
+print(np.dot(A, B))
+print(C_gpu)
+
+-------
+
+
+A = np.array(([1, 2, 3], [4, 5, 6])).astype(np.float64)
+B = np.array(([7, 8, 1], [9, 10, 0])).astype(np.float64)
+
+# Upload the vectors to the GPU
+A_gpu = gpuarray.to_gpu(A)
+B_gpu = gpuarray.to_gpu(B)
+
+# Perform vector addition on the GPU
+C_gpu = A_gpu + B_gpu
+
+
+C = C_gpu.get()
+
+
+expected_result = A + B
+np.array_equal(C, expected_result)
+
+print("Expected Result:")
+print(expected_result)
+print("Result from GPU:")
+print(C)
+
+---------
+import pycuda.autoinit
+import pycuda.gpuarray as gpuarray
+import numpy as np
+import time
+
+# Define the vectors
+A = np.array(([1, 2, 3], [4, 5, 6])).astype(np.float64)
+B = np.array(([7, 8, 1], [9, 10, 0])).astype(np.float64)
+
+# Upload the vectors to the GPU
+start_gpu_upload = time.time()
+A_gpu = gpuarray.to_gpu(A)
+B_gpu = gpuarray.to_gpu(B)
+end_gpu_upload = time.time()
+
+# Perform vector addition on the GPU
+start_gpu_addition = time.time()
+C_gpu = A_gpu + B_gpu
+end_gpu_addition = time.time()
+
+# Download the result back to the host
+start_gpu_download = time.time()
+C = C_gpu.get()
+end_gpu_download = time.time()
+
+# Verify the result
+expected_result = A + B
+if np.array_equal(C, expected_result):
+    print("Vector addition successful!")
+else:
+    print("Vector addition failed!")
+
+# Print expected result and result from GPU
+start_print_expected_result = time.time()
+print("Expected Result:")
+print(expected_result)
+end_print_expected_result = time.time()
+
+start_print_result_from_gpu = time.time()
+print("Result from GPU:")
+print(C)
+end_print_result_from_gpu = time.time()
+
+# Print runtimes
+# print("GPU Upload Time:", end_gpu_upload - start_gpu_upload, "seconds")
+# print("GPU Addition Time:", end_gpu_addition - start_gpu_addition, "seconds")
+# print("GPU Download Time:", end_gpu_download - start_gpu_download, "seconds")
+print("Print Expected Result Time:", end_print_expected_result - start_print_expected_result, "seconds")
+print("Print Result from GPU Time:", end_print_result_from_gpu - start_print_result_from_gpu, "seconds")
+
+
